@@ -5,8 +5,8 @@ const app = express();
 app.use(express.json());
 
 // ===== CONFIG =====
-const DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/XXX/YYY"; // ใส่ของจริง
-const SHARED_SECRET = "super_secret_change_me"; // เปลี่ยนให้ยาว/สุ่มเอง
+const DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1432816819458019491/HkabKcQN1vPkafP4FIf-4no_BcjwHZ-A8hTQfBNHrNJD4ffBE3nv-Rhf2Vm9xNAIVd0G"; // ใส่ของจริง
+const SHARED_SECRET = "222554"; // เปลี่ยนให้ยาว/สุ่มเอง
 
 // คิวข้อความรอ Roblox มาดึง
 let pendingMessagesForRoblox = [];
