@@ -1,1 +1,15 @@
 
+{
+  "name": "roblox-discord-relay",
+  "version": "1.0.0",
+  "description": "Bridge server between Roblox and Discord",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.0",
+    "node-fetch": "^3.3.2"
+  }
+}
