@@ -4,84 +4,63 @@ import fetch from "node-fetch";
 const app = express();
 app.use(express.json());
 
-// ===== CONFIG =====
-const DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1432816819458019491/HkabKcQN1vPkafP4FIf-4no_BcjwHZ-A8hTQfBNHrNJD4ffBE3nv-Rhf2Vm9xNAIVd0G"; // ใส่ของจริง
-const SHARED_SECRET = "222554"; // เปลี่ยนให้ยาว/สุ่มเอง
+// CONFIG (อย่าใส่ค่าไว้ตรงนี้ในโปรดักชัน — ใช้ env vars ใน Render)
+const DISCORD_WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL || "";
+const SHARED_SECRET = process.env.SHARED_SECRET || "change_this_secret";
 
-// คิวข้อความรอ Roblox มาดึง
+// in-memory queue (เรียบง่าย) — รีสตาร์ทแล้วหาย ถ้าต้องการถาวรให้ใช้ DB
 let pendingMessagesForRoblox = [];
 
-// middleware auth โง่ๆ ป้องกันสแปม
+// simple auth middleware
 function verifyKey(req, res, next) {
-const key = req.header("x-relay-key");
-if (!key || key !== SHARED_SECRET) {
-return res.status(403).json({ error: "forbidden" });
-}
-next();
+  const key = req.header("x-relay-key");
+  if (!key || key !== SHARED_SECRET) return res.status(403).json({ error: "forbidden" });
+  next();
 }
 
 // Roblox -> Discord
 app.post("/to-discord", verifyKey, async (req, res) => {
-const { author, text } = req.body;
-if (!author || !text) {
-return res.status(400).json({ error: "missing author or text" });
-}
+  const { author, text } = req.body;
+  if (!author || !text) return res.status(400).json({ error: "missing author or text" });
 
-const payload = {
-content: 🎮 **${author}**: ${text}
-};
+  const payload = { content: `🎮 **${author}**: ${text}` };
 
-try {
-const resp = await fetch(DISCORD_WEBHOOK_URL, {
-method: "POST",
-headers: { "Content-Type": "application/json" },
-body: JSON.stringify(payload)
+  try {
+    const resp = await fetch(DISCORD_WEBHOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    if (!resp.ok) {
+      const body = await resp.text();
+      console.error("Discord webhook error", resp.status, body);
+      return res.status(500).json({ error: "discord_failed" });
+    }
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error("ERR /to-discord", err);
+    return res.status(500).json({ error: "internal" });
+  }
 });
 
-if (!resp.ok) {  
-  const body = await resp.text();  
-  console.error("Discord webhook error:", resp.status, body);  
-  return res.status(500).json({ error: "discord_failed" });  
-}  
-
-return res.json({ ok: true });
-
-} catch (err) {
-console.error("ERR /to-discord:", err);
-return res.status(500).json({ error: "internal" });
-}
-});
-
-// Discord bot -> relay
+// Discord bot -> relay (bot จะ POST มาที่นี่)
 app.post("/from-discord", verifyKey, (req, res) => {
-const { author, text } = req.body;
-if (!author || !text) {
-return res.status(400).json({ error: "missing author or text" });
-}
+  const { author, text } = req.body;
+  if (!author || !text) return res.status(400).json({ error: "missing author or text" });
 
-pendingMessagesForRoblox.push({
-author,
-text,
-ts: Date.now()
-});
-
-return res.json({ ok: true });
+  pendingMessagesForRoblox.push({ author, text, ts: Date.now() });
+  return res.json({ ok: true });
 });
 
 // Roblox -> get new messages
 app.get("/messages", verifyKey, (req, res) => {
-const out = pendingMessagesForRoblox;
-pendingMessagesForRoblox = [];
-return res.json({ ok: true, messages: out });
+  const out = pendingMessagesForRoblox;
+  pendingMessagesForRoblox = [];
+  return res.json({ ok: true, messages: out });
 });
 
-// test route
-app.get("/", (req, res) => {
-res.send("Relay server is alive 😎");
-});
+// health
+app.get("/", (req, res) => res.send("Relay alive"));
 
-// IMPORTANT for Render:
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, "0.0.0.0", () => {
-console.log("Relay server up on port", PORT);
-});
+app.listen(PORT, "0.0.0.0", () => console.log("Relay listening on", PORT));
