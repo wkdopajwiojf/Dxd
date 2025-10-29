@@ -85,3 +85,39 @@ const PORT = process.env.PORT || 10000;
 app.listen(PORT, "0.0.0.0", () =>
   console.log("🌍 Global Relay running on", PORT)
 );
+
+// =======================
+// 🟢 DXD Online Presence API
+// =======================
+const onlineUsers = {};
+
+app.post("/online/add", (req, res) => {
+  const { name, placeId, jobId } = req.body;
+  if (!name) return res.json({ ok: false, error: "Missing name" });
+  onlineUsers[name] = {
+    placeId: placeId || 0,
+    jobId: jobId || "unknown",
+    lastSeen: Date.now(),
+  };
+  res.json({ ok: true });
+});
+
+app.post("/online/remove", (req, res) => {
+  const { name } = req.body;
+  if (!name) return res.json({ ok: false, error: "Missing name" });
+  delete onlineUsers[name];
+  res.json({ ok: true });
+});
+
+app.get("/online/list", (req, res) => {
+  const now = Date.now();
+  // เอาคนที่หายไปเกิน 60 วินาทีออก
+  for (const [name, info] of Object.entries(onlineUsers)) {
+    if (now - info.lastSeen > 60000) delete onlineUsers[name];
+  }
+  res.json({
+    ok: true,
+    count: Object.keys(onlineUsers).length,
+    users: onlineUsers,
+  });
+});
