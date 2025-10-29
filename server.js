@@ -91,22 +91,46 @@ app.listen(PORT, "0.0.0.0", () =>
 // =======================
 const onlineUsers = {};
 
-app.post("/online/add", (req, res) => {
-  const { name, placeId, jobId } = req.body;
-  if (!name) return res.json({ ok: false, error: "Missing name" });
-  onlineUsers[name] = {
-    placeId: placeId || 0,
-    jobId: jobId || "unknown",
-    lastSeen: Date.now(),
-  };
+// =======================
+// 🟢 DXD Online Presence API (MATCH v5.5 CLIENT)
+// =======================
+const onlineUsers = {};
+
+app.post("/online/update", verifyKey, (req, res) => {
+  const { name, userId, jobId, placeId, status } = req.body || {};
+  if (!name || !userId) return res.json({ ok: false, error: "Missing data" });
+
+  if (status === "join" || status === "update") {
+    onlineUsers[userId] = {
+      name,
+      userId,
+      jobId: jobId || "unknown",
+      placeId: placeId || 0,
+      lastSeen: Date.now(),
+    };
+  } else if (status === "leave") {
+    delete onlineUsers[userId];
+  }
+
   res.json({ ok: true });
 });
 
-app.post("/online/remove", (req, res) => {
-  const { name } = req.body;
-  if (!name) return res.json({ ok: false, error: "Missing name" });
-  delete onlineUsers[name];
-  res.json({ ok: true });
+// 🕒 ลบผู้เล่นที่หายไปนานกว่า 60 วิ
+setInterval(() => {
+  const now = Date.now();
+  for (const id in onlineUsers) {
+    if (now - onlineUsers[id].lastSeen > 60000) {
+      delete onlineUsers[id];
+    }
+  }
+}, 10000);
+
+// 🔍 รายชื่อทั้งหมด
+app.get("/online/list", verifyKey, (req, res) => {
+  res.json({
+    ok: true,
+    players: Object.values(onlineUsers),
+  });
 });
 
 app.get("/online/list", (req, res) => {
