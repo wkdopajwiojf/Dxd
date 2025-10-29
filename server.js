@@ -34,7 +34,7 @@ app.post("/to-discord", verifyKey, async (req, res) => {
   const { author, text } = req.body || {};
   if (!text || !author) return res.status(400).json({ error: "missing" });
 
-  // ✅ เช็คถ้าเป็นข้อความเดิมล่าสุดของคนเดียวกัน จะไม่ส่งซ้ำ
+  // ✅ ป้องกันข้อความซ้ำจากคนเดียวกัน
   const last = messages[messages.length - 1];
   if (last && last.author === author && last.text === text) {
     return res.json({ ok: true, skipped: true });
@@ -81,16 +81,6 @@ app.get("/messages", verifyKey, (req, res) => {
 // Endpoint ปลุกเซิร์ฟ
 app.get("/keepalive", (_, res) => res.json({ ok: true, awake: true }));
 
-const PORT = process.env.PORT || 10000;
-app.listen(PORT, "0.0.0.0", () =>
-  console.log("🌍 Global Relay running on", PORT)
-);
-
-// =======================
-// 🟢 DXD Online Presence API
-// =======================
-const onlineUsers = {};
-
 // =======================
 // 🟢 DXD Online Presence API (MATCH v5.5 CLIENT)
 // =======================
@@ -133,3 +123,7 @@ app.get("/online/list", verifyKey, (req, res) => {
   });
 });
 
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, "0.0.0.0", () =>
+  console.log("🌍 Global Relay running on", PORT)
+);
