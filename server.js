@@ -37,10 +37,13 @@ app.post("/from-discord", verifyKey,(req,res)=>{
 });
 
 // Roblox polling
-app.get("/messages",verifyKey,(req,res)=>{
-  const out=pending;
-  pending=[];
-  res.json({ok:true,messages:out});
+app.get("/messages", verifyKey, (req, res) => {
+  const safe = pending.map(m => ({
+    author: String(m.author || "???"),
+    text: String(m.text || "")
+  }));
+  pending = [];
+  res.json({ ok: true, messages: safe });
 });
 
 app.get("/",(_,res)=>res.send("Dxd relay online ✅"));
