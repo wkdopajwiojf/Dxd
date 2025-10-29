@@ -133,15 +133,3 @@ app.get("/online/list", verifyKey, (req, res) => {
   });
 });
 
-app.get("/online/list", (req, res) => {
-  const now = Date.now();
-  // เอาคนที่หายไปเกิน 60 วินาทีออก
-  for (const [name, info] of Object.entries(onlineUsers)) {
-    if (now - info.lastSeen > 60000) delete onlineUsers[name];
-  }
-  res.json({
-    ok: true,
-    count: Object.keys(onlineUsers).length,
-    users: onlineUsers,
-  });
-});
